@@ -1,3 +1,5 @@
+use std::simd::u8x64;
+
 #[cfg(test)]
 mod tests;
 
@@ -11,5 +13,14 @@ pub fn naive_xor_chunks(a: [u8; 4096], b: [u8; 4096]) -> [u8; 4096] {
 }
 
 pub fn xor_chunks(a: [u8; 4096], b: [u8; 4096]) -> [u8; 4096] {
-    todo!("XOR each byte of a with each byte of b and return the result faster than the naive implementation with SIMD. You can use the experimental features array_chunks and portable_simd.");
+    let mut result = [0u8; 4096];
+    for ((chunk_a, chunk_b), chunk_result) in a
+        .array_chunks::<64>()
+        .zip(b.array_chunks::<64>())
+        .zip(result.array_chunks_mut::<64>())
+    {
+        *chunk_result = (u8x64::from_array(*chunk_a) ^ u8x64::from_array(*chunk_b)).to_array();
+    }
+
+    result
 }
