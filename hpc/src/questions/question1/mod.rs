@@ -1,3 +1,5 @@
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+
 #[cfg(test)]
 mod tests;
 
@@ -15,7 +17,7 @@ pub fn single_threaded_computation(to_compute: &[u8]) -> Vec<f64> {
 
 pub fn multi_threaded_computation(to_compute: &[u8]) -> Vec<f64> {
     to_compute
-        .into_iter()
+        .par_iter()
         .map(|&x| (2..=x).map(|n| n as f64).product::<f64>())
         .collect()
 }
