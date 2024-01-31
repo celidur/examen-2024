@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <stdlib.h>
 
 /**
  * Le programme fait les choses suivantes :
@@ -15,19 +16,44 @@
 typedef struct {
     // User defined data may be declared here.
     // Probably need some semaphores...
+    sem_t animal;
+    sem_t plant;
     
 } EcosystemBalance;
+
+void releaseAnimal() {
+    printf("A");
+}
+
+void releasePlant() {
+    printf("P");
+}
 
 EcosystemBalance* createBalance() {
     EcosystemBalance* obj = (EcosystemBalance*) malloc(sizeof(EcosystemBalance));
     
     // Initialize user defined data here.
+    sem_init(&obj->animal, 0, 1);
+    sem_init(&obj->plant, 0, 3);
     
     return obj;
 }
 
 // For a plant thread, probably need to use semaphores...
 void plant(EcosystemBalance* obj) {
+    sem_wait(&obj->plant);
+
+    int value_plant = 0;
+    sem_getvalue(&obj->plant, &value_plant);
+    int value_animal = 0;
+    sem_getvalue(&obj->animal, &value_animal);
+    
+    if (value_plant == 0 && value_animal == 0) {
+        sem_post(&obj->plant);
+        sem_post(&obj->plant);
+        sem_post(&obj->plant);
+        sem_post(&obj->animal);
+    }
     
     // releaseAnimal() outputs "A". Do not change or remove this line.
     releaseAnimal();
@@ -35,7 +61,19 @@ void plant(EcosystemBalance* obj) {
 
 // For an animal thread, probably need to use semaphores...
 void animal(EcosystemBalance* obj) {
+    sem_wait(&obj->animal);
     
+    int value_plant = 0;
+    sem_getvalue(&obj->plant, &value_plant);
+    int value_animal = 0;
+    sem_getvalue(&obj->animal, &value_animal);
+    
+    if (value_plant == 0 && value_animal == 0) {
+        sem_post(&obj->plant);
+        sem_post(&obj->plant);
+        sem_post(&obj->plant);
+        sem_post(&obj->animal);
+    }
     // releasePlant() outputs "P". Do not change or remove this line.
     releasePlant();
 }
@@ -43,15 +81,11 @@ void animal(EcosystemBalance* obj) {
 // Clean up the balance resources you created.
 void cleanupBalance(EcosystemBalance* obj) {
     // User defined data may be cleaned up here.
-    
-}
+    sem_destroy(&obj->animal);
+    sem_destroy(&obj->plant);
 
-releaseAnimal() {
-    printf("A");
-}
-
-releasePlant() {
-    printf("P");
+    sem_init(&obj->animal, 0, 1);
+    sem_init(&obj->plant, 0, 3);
 }
 
 int main() {
@@ -86,8 +120,8 @@ int main() {
             pthread_create(&thread2[i], NULL, (void*)plant, (void*)obj);
         }
     }
-    for (i = 0; i < 100; i++) {
-        pthread_join(thread[i], NULL);
+    for (i = 0; i < 16; i++) {
+        pthread_join(thread2[i], NULL);
     }
     cleanupBalance(obj);
     printf("\n");
@@ -104,9 +138,11 @@ int main() {
             pthread_create(&thread3[i], NULL, (void*)plant, (void*)obj);
         }
     }
-    for (i = 0; i < 100; i++) {
-        pthread_join(thread[i], NULL);
+    for (i = 0; i < 32; i++) {
+        pthread_join(thread3[i], NULL);
     }
     cleanupBalance(obj);
+    printf("\n");
+    free(obj);
     return 0;
 }
